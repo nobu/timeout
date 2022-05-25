@@ -20,3 +20,20 @@ jobs:
         bundler-cache: true # 'bundle install' and cache gems
     - name: Run test
       run: bundle exec rake test
+
+    - id: build
+      run: |
+        bundle exec rake build
+        ls -l pkg/*.gem
+        shasum -a 256 pkg/*.gem
+        echo "::set-output name=pkg::${GITHUB_REPOSITORY#*/}-${RUNNING_OS%-*}"
+      env:
+        RUNNING_OS: ${{matrix.os}}
+      shell: bash
+      if: ${{ matrix.ruby == '3.1' && !startsWith(matrix.os, 'ubuntu') }}
+    - name: Upload package
+      uses: actions/upload-artifact@v3
+      with:
+        path: pkg/*.gem
+        name: ${{steps.build.outputs.pkg}}
+      if: ${{ steps.build.conclusion == 'success' }}
